@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ML Supercapacitor Dashboard</title>
+
+    <!-- Google Fonts for Modern Typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --highlight: #10b981;
+            --highlight-glow: rgba(16, 185, 129, 0.4);
+            --danger: #ef4444;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+        }
+
+        /* ----- HEADER & HERO ----- */
+        header {
+            width: 100%;
+            padding: 40px 20px;
+            text-align: center;
+            background: linear-gradient(180deg, rgba(15, 23, 42, 1) 0%, rgba(11, 15, 25, 0) 100%);
+            border-bottom: 1px solid var(--card-border);
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(90deg, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* ----- UPLOAD SECTION ----- */
+        .controls-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            background: var(--card-bg);
+            padding: 30px 40px;
+            border-radius: 16px;
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            margin-bottom: 30px;
+        }
+
+        .file-inputs {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .file-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .file-group label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        input[type="file"] {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px dashed var(--card-border);
+            color: var(--text-muted);
+            outline: none;
+            transition: border 0.3s;
+        }
+
+        input[type="file"]:hover {
+            border-color: var(--accent);
+        }
+
+        button#runBtn {
+            padding: 12px 30px;
+            background: var(--accent);
+            border: none;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+
+        button#runBtn:hover:not(:disabled) {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+        }
+
+        button#runBtn:disabled {
+            background: #475569;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
+        #status {
+            font-weight: 400;
+            font-size: 1rem;
+            color: var(--text-muted);
+            margin: 0;
+            min-height: 24px;
+        }
+
+        /* ----- MAIN DASHBOARD ----- */
+        #dashboard {
+            width: 90%;
+            max-width: 1400px;
+            display: none;
+            flex-direction: column;
+            gap: 40px;
+            padding-bottom: 60px;
+        }
+
+        /* ----- MODEL COMPARISON SECTION ----- */
+        .comparison-section {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .comparison-title {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            color: var(--text-main);
+            text-align: left;
+            padding-left: 10px;
+            font-weight: 600;
+        }
+
+        .comparison-chart-container {
+            height: 350px;
+            position: relative;
+        }
+
+        /* ----- MODEL CARDS ----- */
+        .models-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .model-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .best-model-card {
+            border: 2px solid var(--highlight);
+            box-shadow: 0 0 20px var(--highlight-glow);
+            transform: translateY(-5px);
+        }
+
+        .best-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: var(--highlight);
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            box-shadow: 0 2px 10px var(--highlight-glow);
+        }
+
+        .model-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 0;
+            color: #fff;
+        }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .metric-row:last-child {
+            border-bottom: none;
+        }
+
+        .metric-label {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .metric-value {
+            font-weight: 600;
+            font-size: 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px 8px;
+            border-radius: 6px;
+            color: #fff;
+        }
+
+        /* ----- GRAPHS SECTION PER MODEL ----- */
+        .model-graphs-section {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .model-group {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .model-group-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin: 0 0 20px 0;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 15px;
+        }
+
+        .model-group.best-model-group .model-group-title {
+            color: var(--highlight);
+        }
+
+        .graphs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .graph-card {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .graph-card h4 {
+            margin: 0 0 15px 0;
+            font-size: 1rem;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        .canvas-container {
+            position: relative;
+            height: 250px;
+            width: 100%;
+        }
+
+        select {
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin: 5px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>Supercapacitor ML Analyzer</h1>
+    </header>
+
+    <div class="controls-container">
+        <div class="file-inputs">
+            <div class="file-group">
+                <label for="trainFile">Train Dataset (CSV / Excel)</label>
+                <input type="file" id="trainFile" accept=".csv,.xlsx,.xls">
+            </div>
+            <div class="file-group">
+                <label for="testFile">Test Dataset (CSV / Excel)</label>
+                <input type="file" id="testFile" accept=".csv,.xlsx,.xls">
+            </div>
+        </div>
+
+        <button id="runBtn" onclick="runModel()">Run Model</button>
+        <h2 id="status"></h2>
+    </div>
+    <h3>Or Select Saved Files</h3>
+
+    <select id="savedTrain">
+        <option value="">Select Train File</option>
+    </select>
+
+    <select id="savedTest">
+        <option value="">Select Test File</option>
+    </select>
+    <div id="dashboard">
+
+        <!-- COMPARISON SECTION -->
+        <div class="comparison-section">
+            <div class="comparison-title">Model Comparison (R² Score)</div>
+            <div class="comparison-chart-container">
+                <canvas id="comparisonChart"></canvas>
+            </div>
+        </div>
+
+        <!-- MODEL CARDS SECTION -->
+        <div class="models-grid" id="modelCardsContainer"></div>
+
+        <!-- GRAPHS FOR EACH MODEL -->
+        <div class="model-graphs-section" id="modelGraphsContainer"></div>
+
+    </div>
+
+    <!-- Chart.js default config for dark theme -->
+    <script>
+        Chart.defaults.color = "#94a3b8";
+        Chart.defaults.borderColor = "rgba(255, 255, 255, 0.1)";
+    </script>
+
+    <script>
+        // Store chart instances globally to clean up before re-rendering
+        let activeCharts = [];
+        async function runModel() {
+
+            let btn = document.getElementById("runBtn");
+            let status = document.getElementById("status");
+
+            btn.disabled = true;
+            status.innerText = "⏳ Running model...";
+
+            let train = document.getElementById("trainFile").files[0];
+            let test = document.getElementById("testFile").files[0];
+
+            let savedTrain = document.getElementById("savedTrain").value;
+            let savedTest = document.getElementById("savedTest").value;
+
+            let formData = new FormData();
+
+            // Upload case
+            if (train && test) {
+                formData.append("train", train);
+                formData.append("test", test);
+            }
+            // Dropdown case
+            else if (savedTrain && savedTest) {
+                formData.append("train_name", savedTrain);
+                formData.append("test_name", savedTest);
+            }
+            else {
+                alert("Upload OR select both files");
+                btn.disabled = false;
+                return;
+            }
+
+            try {
+                let response = await fetch("/predict", {
+                    method: "POST",
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error("Server error");
+                }
+
+                let data = await response.json();
+
+                status.innerText = "✅ Completed";
+
+                showResults(data);
+
+            } catch (error) {
+                console.error(error);
+                status.innerText = "❌ Error occurred";
+                alert(error.message);
+            }
+
+            btn.disabled = false;
+        }
+
+        // ==========================
+        // UI RENDERING LOGIC
+        // ==========================
+        function showResults(data) {
+            document.getElementById("dashboard").style.display = "flex";
+
+            let trainDropdown = document.getElementById("savedTrain");
+            let testDropdown = document.getElementById("savedTest");
+
+            trainDropdown.innerHTML = '<option value="">Select Train File</option>';
+            testDropdown.innerHTML = '<option value="">Select Test File</option>';
+
+            // Clean old charts
+            activeCharts.forEach(c => c.destroy());
+            activeCharts = [];
+
+            let bestModelName = data.best_model;
+            let models = ["ANN", "RF", "XGB"];
+
+            // 🔥 THESE WERE MISSING
+            renderModelCards(data, models, bestModelName);
+            renderGraphSections(data, models, bestModelName);
+            renderComparisonChart(data, models, bestModelName);
+        }
+        function renderModelCards(data, models, bestModelName) {
+            const container = document.getElementById("modelCardsContainer");
+            container.innerHTML = "";
+
+            models.forEach(m => {
+                let modelData = data.models[m];
+                if (!modelData || modelData.error) return;
+
+                let isBest = (m === bestModelName);
+                let metrics = modelData.metrics;
+                let opt = modelData.optimization;
+
+                let cardHTML = `
+                    <div class="model-card ${isBest ? 'best-model-card' : ''}">
+                        ${isBest ? '<div class="best-badge">★ Best Model</div>' : ''}
+                        <h3 class="model-title">${m}</h3>
+                        
+                        <div class="metric-row">
+                            <span class="metric-label">R² Score</span>
+                            <span class="metric-value">${metrics.r2_test.toFixed(4)}</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">RMSE</span>
+                            <span class="metric-value">${metrics.rmse_test.toFixed(4)}</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Best Zn/Co</span>
+                            <span class="metric-value">${opt.best_concentration.toFixed(2)}</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Capacitance</span>
+                            <span class="metric-value">${opt.capacitance.toFixed(2)} F/g</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Energy Density</span>
+                            <span class="metric-value">${opt.energy.toFixed(4)} Wh/kg</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Power Density</span>
+                            <span class="metric-value">${opt.power.toFixed(2)} W/kg</span>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += cardHTML;
+            });
+        }
+
+        function renderGraphSections(data, models, bestModelName) {
+            const container = document.getElementById("modelGraphsContainer");
+            container.innerHTML = "";
+
+            models.forEach(m => {
+                let modelData = data.models[m];
+                if (!modelData || modelData.error) return;
+
+                let isBest = (m === bestModelName);
+                let safeM = m.toLowerCase();
+
+                let sectionHTML = `
+                    <div class="model-group ${isBest ? 'best-model-group' : ''}">
+                        <h3 class="model-group-title">${m} Graphs ${isBest ? '⭐' : ''}</h3>
+                        <div class="graphs-grid">
+                            
+                            <div class="graph-card">
+                                <h4>Actual vs Predicted</h4>
+                                <div class="canvas-container">
+                                    <canvas id="chart_avp_${safeM}"></canvas>
+                                </div>
+                            </div>
+
+                            <div class="graph-card">
+                                <h4>CV Curve</h4>
+                                <div class="canvas-container">
+                                    <canvas id="chart_cv_${safeM}"></canvas>
+                                </div>
+                            </div>
+
+                            <div class="graph-card">
+                                <h4>Capacitance vs Concentration</h4>
+                                <div class="canvas-container">
+                                    <canvas id="chart_cap_${safeM}"></canvas>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += sectionHTML;
+            });
+
+            // Delay charting to ensure DOM spans have been injected 
+            setTimeout(() => {
+                models.forEach(m => {
+                    let modelData = data.models[m];
+                    if (!modelData || modelData.error) return;
+
+                    let safeM = m.toLowerCase();
+                    let plots = modelData.plots;
+
+                    // 1. Actual vs Predicted
+                    if (plots.actual_vs_predicted) {
+                        let actual = plots.actual_vs_predicted.actual.slice(0, 200);
+                        let predicted = plots.actual_vs_predicted.predicted.slice(0, 200);
+
+                        let ctx1 = document.getElementById(`chart_avp_${safeM}`);
+                        if (ctx1) {
+                            let chart1 = new Chart(ctx1, {
+                                type: "scatter",
+                                data: {
+                                    datasets: [{
+                                        label: `Actual vs Predicted`,
+                                        data: actual.map((v, i) => ({ x: v, y: predicted[i] })),
+                                        backgroundColor: "rgba(59, 130, 246, 0.6)",
+                                        borderColor: "rgba(59, 130, 246, 1)",
+                                        pointRadius: 3
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: { legend: { display: false } }
+                                }
+                            });
+                            activeCharts.push(chart1);
+                        }
+                    }
+
+                    // 2. CV Curve
+                    if (plots.cv_curve) {
+                        let cvVolt = plots.cv_curve.voltage;
+                        let cvCurr = plots.cv_curve.current;
+
+                        let ctx2 = document.getElementById(`chart_cv_${safeM}`);
+                        if (ctx2) {
+                            let chart2 = new Chart(ctx2, {
+                                type: "line",
+                                data: {
+                                    labels: cvVolt.map(v => v.toFixed(2)),
+                                    datasets: [{
+                                        label: `Current`,
+                                        data: cvCurr,
+                                        borderColor: "rgba(167, 139, 250, 1)",
+                                        backgroundColor: "rgba(167, 139, 250, 0.2)",
+                                        borderWidth: 2,
+                                        pointRadius: 0,
+                                        fill: true,
+                                        tension: 0.4
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: { legend: { display: false } },
+                                    scales: {
+                                        x: { ticks: { maxTicksLimit: 10 } }
+                                    }
+                                }
+                            });
+                            activeCharts.push(chart2);
+                        }
+                    }
+
+                    // 3. Capacitance vs Concentration
+                    if (plots.capacitance_vs_concentration) {
+                        let conc = plots.capacitance_vs_concentration.concentration;
+                        let cap = plots.capacitance_vs_concentration.capacitance;
+
+                        let ctx3 = document.getElementById(`chart_cap_${safeM}`);
+                        if (ctx3) {
+                            let chart3 = new Chart(ctx3, {
+                                type: "line",
+                                data: {
+                                    labels: conc.map(c => c.toFixed(1)),
+                                    datasets: [{
+                                        label: `Capacitance`,
+                                        data: cap,
+                                        borderColor: "rgba(16, 185, 129, 1)",
+                                        backgroundColor: "rgba(16, 185, 129, 0.2)",
+                                        borderWidth: 2,
+                                        pointRadius: 4,
+                                        fill: true,
+                                        tension: 0.1
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: { legend: { display: false } }
+                                }
+                            });
+                            activeCharts.push(chart3);
+                        }
+                    }
+                });
+            }, 50); // slight delay to let DOM render before inserting canvases
+        }
+
+        function renderComparisonChart(data, models, bestModelName) {
+            let ctx = document.getElementById("comparisonChart");
+            if (!ctx) return;
+
+            let modelNames = [];
+            let r2Scores = [];
+            let backgroundColors = [];
+            let borderColors = [];
+
+            models.forEach(m => {
+                let modelData = data.models[m];
+                if (!modelData || modelData.error) return;
+
+                modelNames.push(m);
+                r2Scores.push(modelData.metrics.r2_test);
+
+                if (m === bestModelName) {
+                    backgroundColors.push("rgba(16, 185, 129, 0.7)");
+                    borderColors.push("rgba(16, 185, 129, 1)");
+                } else {
+                    backgroundColors.push("rgba(59, 130, 246, 0.4)");
+                    borderColors.push("rgba(59, 130, 246, 1)");
+                }
+            });
+
+            let chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: modelNames,
+                    datasets: [{
+                        label: 'R² Score',
+                        data: r2Scores,
+                        backgroundColor: backgroundColors,
+                        borderColor: borderColors,
+                        borderWidth: 1,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: Math.max(0, Math.min(...r2Scores) - 0.1),
+                            max: 1.0
+                        }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+            activeCharts.push(chart);
+        }
+        async function loadSavedFiles() {
+            let response = await fetch("/files");
+            let data = await response.json();
+
+            //let trainDropdown = document.getElementById("savedTrain");
+            //let testDropdown = document.getElementById("savedTest");
+            let trainDropdown = document.getElementById("savedTrain");
+            let testDropdown = document.getElementById("savedTest");
+
+            trainDropdown.innerHTML = '<option value="">Select Train File</option>';
+            testDropdown.innerHTML = '<option value="">Select Test File</option>';
+            data.files.forEach(file => {
+                let option1 = new Option(file, file);
+                let option2 = new Option(file, file);
+
+                trainDropdown.add(option1);
+                testDropdown.add(option2);
+            });
+        }
+
+        // run on page load
+        window.onload = loadSavedFiles;
+
+    </script>
+</body>
+
+</html>
